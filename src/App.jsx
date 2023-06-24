@@ -102,7 +102,8 @@ function App() {
   return (
     <>
       <h1>Hi, this is Buddy</h1>
-      <button onClick={handleListen}>Listen</button>
+      <p>Click the button below and then speak to the mic</p>
+      <button onClick={handleListen}>Speak</button>
       <p>{transcript !== "" && transcript}</p>
       <p>{response}</p>
     </>
