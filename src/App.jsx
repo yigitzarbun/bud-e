@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-
+import dotenv from "dotenv";
 function App() {
   const [transcript, setTranscript] = useState("");
   const [response, setResponse] = useState("");
-  const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 
   useEffect(() => {
     const recognition = new window.webkitSpeechRecognition();
