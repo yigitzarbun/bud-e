@@ -4,7 +4,8 @@ import axios from "axios";
 function App() {
   const [transcript, setTranscript] = useState("");
   const [response, setResponse] = useState("");
-  const apiKey = process.env.OPENAI_API_KEY || "";
+  const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
+
   useEffect(() => {
     const recognition = new window.webkitSpeechRecognition();
     recognition.onresult = async (event) => {
