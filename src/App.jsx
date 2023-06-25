@@ -1,70 +1,58 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import "tailwindcss/tailwind.css";
 import axios from "axios";
-import dotenv from "dotenv";
+
+import SpeechCircle from "./components/SpeechCircle";
+import Transcript from "./components/Transcript";
+
 function App() {
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   const [transcript, setTranscript] = useState("");
   const [response, setResponse] = useState("");
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  const [bgColor, setBgColor] = useState(0);
+  const [speaking, setSpeaking] = useState(false);
+  const [click, setClick] = useState(true);
 
-  useEffect(() => {
-    const recognition = new window.webkitSpeechRecognition();
-    recognition.onresult = async (event) => {
-      const newTranscript = event.results[0][0].transcript;
-      setTranscript(newTranscript);
+  const colors = [
+    "bg-gradient-to-r from-cyan-500 to-blue-500",
+    "bg-gradient-to-r from-sky-500 to-indigo-500",
+    "bg-gradient-to-r from-violet-500 to-fuchsia-500",
+    "bg-gradient-to-r from-purple-500 to-pink-500",
+  ];
 
-      // Send user's transcript to OpenAI API for a response
-      const prompt = `User: ${newTranscript}\nAssistant:`;
-      try {
-        const response = await fetch(
-          "https://api.openai.com/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + apiKey,
-            },
-            body: JSON.stringify({
-              messages: [
-                { role: "system", content: "You: " + newTranscript },
-                { role: "system", content: "Assistant:" },
-              ],
-              model: "gpt-3.5-turbo",
-              max_tokens: 50,
-            }),
-          }
-        );
-
-        const data = await response.json();
-        if (data.choices && data.choices.length > 0) {
-          const reply = data.choices[0].message.content.trim();
-          setResponse(reply);
-          speak(reply); // Speak the response
-        }
-      } catch (error) {
-        console.error("Failed to generate response:", error);
-      }
-    };
-
-    return () => {
-      recognition.stop();
-    };
-  }, []);
+  const speakResponse = (text) => {
+    if ("speechSynthesis" in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.speak(utterance);
+      utterance.onend = () => {
+        setSpeaking(false);
+        setClick(true);
+      };
+    }
+  };
 
   const handleListen = () => {
+    setBgColor((bgColor + 1) % colors.length);
+    setClick(false);
     const recognition = new window.webkitSpeechRecognition();
     recognition.onresult = (event) => {
       const newTranscript = event.results[0][0].transcript;
       setTranscript(newTranscript);
-
-      // Send user's transcript to OpenAI API for a response
-      const prompt = `User: ${newTranscript}\nAssistant:`;
+      recognition.interimResults = true;
+      recognition.continuous = true;
       axios
         .post(
           "https://api.openai.com/v1/chat/completions",
           {
             messages: [
-              { role: "system", content: "You: " + newTranscript },
-              { role: "system", content: "Assistant:" },
+              {
+                role: "system",
+                content:
+                  "You: " +
+                  newTranscript +
+                  "Respond in a kind manner and keep your response less than 255 characters.",
+              },
+              { role: "system", content: "Bud-e:" },
             ],
             model: "gpt-3.5-turbo",
             max_tokens: 50,
@@ -81,32 +69,32 @@ function App() {
           if (data.choices && data.choices.length > 0) {
             const reply = data.choices[0].message.content.trim();
             setResponse(reply);
-            speak(reply); // Speak the response
+            speakResponse(reply);
+            setSpeaking(true);
           }
         })
         .catch((error) => {
           console.error("Failed to generate response:", error);
         });
     };
-
     recognition.start();
   };
 
-  const speak = (text) => {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-
   return (
-    <>
-      <h1>Hi, this is Buddy</h1>
-      <p>Click the button below and then speak to the mic</p>
-      <button onClick={handleListen}>Speak</button>
-      <p>{transcript !== "" && transcript}</p>
-      <p>{response}</p>
-    </>
+    <div className="w-full h-screen flex flex-col justify-center items-center">
+      <SpeechCircle
+        handleListen={handleListen}
+        colors={colors}
+        bgColor={bgColor}
+        speaking={speaking}
+        click={click}
+      />
+      {transcript || response ? (
+        <Transcript transcript={transcript} response={response} />
+      ) : (
+        ""
+      )}
+    </div>
   );
 }
 
